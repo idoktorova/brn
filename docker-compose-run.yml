@@ -13,7 +13,7 @@ services:
     - dbdata:/var/lib/postgresql/data
 
   brn_backend:
-    image: brainup/brn-backend
+    image: brainup/brn-backend:latest
     container_name: brn
     command: java -jar epam-brn.jar
     environment:
@@ -34,7 +34,7 @@ services:
 
   brn_frontend:
     image: brainup/brn-frontend-with-tls:latest
-    container_name: brn_fe_with_tls
+    container_name: brn_frontend
     ports:
     - 80:80
     - 443:443
