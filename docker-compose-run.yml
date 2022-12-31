@@ -1,22 +1,24 @@
 version: '3.8'
+
 services:
   db_brn:
-    image: postgres:13
+    image: postgres:13.9
     restart: always
     ports:
-      - 5432:5432
+    - 5432:5432
     environment:
       POSTGRES_DB: brn
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: _POSTGRES_PASSWORD_
     volumes:
-      - dbdata:/var/lib/postgresql/data
+    - dbdata:/var/lib/postgresql/data
+
   brn:
     container_name: brn
     image: brainup/brn-backend
     command: java -jar epam-brn.jar
     ports:
-      - 8081:8081
+    - 8081:8081
     environment:
       POSTGRES_DB: brn
       POSTGRES_USER: admin
@@ -28,44 +30,56 @@ services:
       YANDEX_FOLDER_ID: _YANDEX_FOLDER_ID_
       API_GITHUB_TOKEN: _API_GITHUB_TOKEN_
     secrets:
-      - aws-key
-      - firebase_config_json
+    - aws-key
+    - firebase_config_json
     depends_on:
-      - db_brn
-  brn_fe:
-    image: brainup/brn-frontend:latest
-    container_name: brn_fe
-#    ports:
-#      - 80:80
-    depends_on:
-      - brn
+    - db_brn
+
   brn_fe_with_tls:
     image: brainup/brn-frontend-with-tls:latest
     container_name: brn_fe_with_tls
     ports:
-      - 80:80
-      - 443:443
+    - 80:80
+    - 443:443
     volumes: #for permanent cert storage
-      - web-root-for-certbot:/usr/share/nginx/html/certcheck
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
+    - web-root-for-certbot:/usr/share/nginx/html/certcheck
+    - certbot-etc:/etc/letsencrypt
+    - certbot-var:/var/lib/letsencrypt
     depends_on:
-      - brn
+    - brn
+
   certbot:
-    image: certbot/certbot
+    image: certbot/certbot:v1.32.2
     container_name: certbot
     volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - web-root-for-certbot:/var/www/html
+    - certbot-etc:/etc/letsencrypt
+    - certbot-var:/var/lib/letsencrypt
+    - web-root-for-certbot:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email brainupspbproject@gmail.com --agree-tos --no-eff-email --force-renewal -d brainup.fun -d brainup.site -d www.brainup.fun -d www.brainup.site
     depends_on:
-      - brn_fe_with_tls
-    command: certonly --webroot --webroot-path=/var/www/html --email brainupspbproject@gmail.com --agree-tos --no-eff-email --force-renewal -d brainup.fun
+    - brn_fe_with_tls
+
+  pgbackup:
+    image: schickling/postgres-backup-s3:master
+    environment:
+      SCHEDULE: '@midnight'
+      S3_REGION: eu-north-1
+      S3_ACCESS_KEY_ID: _S3_KEY_ID_
+      S3_SECRET_ACCESS_KEY: _S3_ACCESS_KEY_
+      S3_BUCKET: brnbackup
+      POSTGRES_HOST: db_brn
+      POSTGRES_DATABASE: brn
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: _POSTGRES_PASSWORD_
+    depends_on:
+    - db_brn
+
 secrets:
   aws-key:
     file: aws-key.properties
   firebase_config_json:
     file: firebase_config.json
+
 volumes:
   dbdata:
   web-root-for-certbot: #volumes for certbot
