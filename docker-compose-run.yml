@@ -1,11 +1,10 @@
 version: '3.8'
 
 services:
-  db_brn:
+  brn_db:
     image: postgres:13.9
+    container_name: brn_db
     restart: always
-    ports:
-    - 5432:5432
     environment:
       POSTGRES_DB: brn
       POSTGRES_USER: admin
@@ -13,12 +12,10 @@ services:
     volumes:
     - dbdata:/var/lib/postgresql/data
 
-  brn:
-    container_name: brn
+  brn_backend:
     image: brainup/brn-backend
+    container_name: brn
     command: java -jar epam-brn.jar
-    ports:
-    - 8081:8081
     environment:
       POSTGRES_DB: brn
       POSTGRES_USER: admin
@@ -35,7 +32,7 @@ services:
     depends_on:
     - db_brn
 
-  brn_fe_with_tls:
+  brn_frontend:
     image: brainup/brn-frontend-with-tls:latest
     container_name: brn_fe_with_tls
     ports:
@@ -51,11 +48,11 @@ services:
   certbot:
     image: certbot/certbot:v1.32.2
     container_name: certbot
+    command: certonly --webroot --webroot-path=/var/www/html --email brainupspbproject@gmail.com --agree-tos --no-eff-email --force-renewal -d brainup.fun -d brainup.site -d www.brainup.fun -d www.brainup.site
     volumes:
     - certbot-etc:/etc/letsencrypt
     - certbot-var:/var/lib/letsencrypt
     - web-root-for-certbot:/var/www/html
-    command: certonly --webroot --webroot-path=/var/www/html --email brainupspbproject@gmail.com --agree-tos --no-eff-email --force-renewal -d brainup.fun -d brainup.site -d www.brainup.fun -d www.brainup.site
     depends_on:
     - brn_fe_with_tls
 
